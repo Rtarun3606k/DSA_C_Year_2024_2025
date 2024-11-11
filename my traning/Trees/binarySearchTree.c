@@ -75,6 +75,17 @@ void SearchTree(BST *root, int data)
     }
 }
 
+void inorder(BST *root)
+{
+    if (root == NULL)
+    {
+        return;
+    }
+    inorder(root->left);
+    printf("%d ", root->data);
+    inorder(root->right);
+}
+
 int main()
 {
     int a, b, c;
