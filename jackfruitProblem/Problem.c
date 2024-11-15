@@ -28,12 +28,14 @@ unsigned int userHash(char *str)
     return hash % TABLE_SIZE;
 }
 
+// Add a user to the hash table
 void addUser(UserHashTable *ht, User *user)
 {
     unsigned int index = userHash(user->username);
     ht->table[index] = user;
 }
 
+// Retrieve a user from the hash table
 User *getUser(UserHashTable *ht, char *username)
 {
     unsigned int index = userHash(username);
@@ -45,8 +47,6 @@ typedef struct Product
 {
     char productId[50];
     char name[50];
-    char category[50];
-    int inventory;
 } Product;
 
 typedef struct ProductHashTable
@@ -55,7 +55,7 @@ typedef struct ProductHashTable
 } ProductHashTable;
 
 // Hash function for products
-unsigned int productHash(char *str)
+int productHash(char *str)
 {
     unsigned int hash = 0;
     while (*str)
@@ -65,25 +65,28 @@ unsigned int productHash(char *str)
     return hash % TABLE_SIZE;
 }
 
+// Add a product to the hash table
 void addProduct(ProductHashTable *ht, Product *product)
 {
     unsigned int index = productHash(product->productId);
     ht->table[index] = product;
 }
 
+// Retrieve a product from the hash table
 Product *getProduct(ProductHashTable *ht, char *productId)
 {
     unsigned int index = productHash(productId);
     return ht->table[index];
 }
 
-// Browsing and Purchase History (Trie)
+// Trie Node for Browsing and Purchase History
 typedef struct TrieNode
 {
     struct TrieNode *children[ALPHABET_SIZE];
     int isEndOfWord;
 } TrieNode;
 
+// Create a new Trie node
 TrieNode *createTrieNode()
 {
     TrieNode *node = (TrieNode *)malloc(sizeof(TrieNode));
@@ -95,6 +98,7 @@ TrieNode *createTrieNode()
     return node;
 }
 
+// Insert a key into the Trie
 void insertTrie(TrieNode *root, const char *key)
 {
     TrieNode *node = root;
@@ -111,6 +115,7 @@ void insertTrie(TrieNode *root, const char *key)
     node->isEndOfWord = 1;
 }
 
+// Search for a key in the Trie
 int searchTrie(TrieNode *root, const char *key)
 {
     TrieNode *node = root;
@@ -127,43 +132,125 @@ int searchTrie(TrieNode *root, const char *key)
     return node != NULL && node->isEndOfWord;
 }
 
-// Purchase History Tracking
-typedef struct Purchase
+// Graph Node for Recommendation Engine
+typedef struct GraphNode
 {
-    char username[50];
     char productId[50];
-} Purchase;
+    struct GraphNode *next;
+} GraphNode;
 
-typedef struct PurchaseNode
+// Graph structure
+typedef struct Graph
 {
-    Purchase purchase;
-    struct PurchaseNode *next;
-} PurchaseNode;
+    int numVertices;
+    GraphNode **adjLists;
+} Graph;
 
-typedef struct PurchaseHistory
+// Create a new graph
+Graph *createGraph(int vertices)
 {
-    PurchaseNode *head;
-} PurchaseHistory;
-
-void addPurchase(PurchaseHistory *history, Purchase *purchase)
-{
-    PurchaseNode *newNode = (PurchaseNode *)malloc(sizeof(PurchaseNode));
-    newNode->purchase = *purchase;
-    newNode->next = history->head;
-    history->head = newNode;
+    Graph *graph = malloc(sizeof(Graph));
+    graph->numVertices = vertices;
+    graph->adjLists = malloc(vertices * sizeof(GraphNode *));
+    for (int i = 0; i < vertices; i++)
+    {
+        graph->adjLists[i] = NULL;
+    }
+    return graph;
 }
 
-void printPurchaseHistory(PurchaseHistory *history)
+// Add an edge to the graph
+void addEdge(Graph *graph, int src, int dest, char *productId)
 {
-    PurchaseNode *current = history->head;
-    while (current != NULL)
+    GraphNode *newNode = malloc(sizeof(GraphNode));
+    strcpy(newNode->productId, productId);
+    newNode->next = graph->adjLists[src];
+    graph->adjLists[src] = newNode;
+}
+
+// Heap Node for top-N recommendations
+typedef struct HeapNode
+{
+    char productId[50];
+    int score;
+} HeapNode;
+
+// MinHeap structure
+typedef struct MinHeap
+{
+    int size;
+    int capacity;
+    HeapNode *array;
+} MinHeap;
+
+// Create a new MinHeap
+MinHeap *createMinHeap(int capacity)
+{
+    MinHeap *minHeap = (MinHeap *)malloc(sizeof(MinHeap));
+    minHeap->size = 0;
+    minHeap->capacity = capacity;
+    minHeap->array = (HeapNode *)malloc(capacity * sizeof(HeapNode));
+    return minHeap;
+}
+
+// Swap two heap nodes
+void swapHeapNode(HeapNode *a, HeapNode *b)
+{
+    HeapNode temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+// Heapify the MinHeap
+void minHeapify(MinHeap *minHeap, int idx)
+{
+    int smallest = idx;
+    int left = 2 * idx + 1;
+    int right = 2 * idx + 2;
+
+    if (left < minHeap->size && minHeap->array[left].score < minHeap->array[smallest].score)
     {
-        printf("User: %s, Product: %s\n", current->purchase.username, current->purchase.productId);
-        current = current->next;
+        smallest = left;
+    }
+
+    if (right < minHeap->size && minHeap->array[right].score < minHeap->array[smallest].score)
+    {
+        smallest = right;
+    }
+
+    if (smallest != idx)
+    {
+        swapHeapNode(&minHeap->array[smallest], &minHeap->array[idx]);
+        minHeapify(minHeap, smallest);
     }
 }
 
-// Main Function to Demonstrate Usage
+// Insert a node into the MinHeap
+void insertMinHeap(MinHeap *minHeap, HeapNode node)
+{
+    if (minHeap->size == minHeap->capacity)
+    {
+        if (node.score > minHeap->array[0].score)
+        {
+            minHeap->array[0] = node;
+            minHeapify(minHeap, 0);
+        }
+    }
+    else
+    {
+        minHeap->size++;
+        int i = minHeap->size - 1;
+        minHeap->array[i] = node;
+
+        while (i && minHeap->array[i].score < minHeap->array[(i - 1) / 2].score)
+        {
+            swapHeapNode(&minHeap->array[i], &minHeap->array[(i - 1) / 2]);
+            i = (i - 1) / 2;
+        }
+    }
+}
+
+// Main function to demonstrate usage
 int main()
 {
     UserHashTable userTable;
@@ -174,13 +261,14 @@ int main()
 
     TrieNode *root = createTrieNode();
 
-    PurchaseHistory purchaseHistory;
-    purchaseHistory.head = NULL;
+    Graph *graph = createGraph(100);
+
+    MinHeap *minHeap = createMinHeap(10);
 
     char command[50];
     while (1)
     {
-        printf("Enter command (add_user, add_product, browse, purchase, history, exit): ");
+        printf("Enter command (add_user, add_product, browse, recommend, exit): ");
         scanf("%s", command);
 
         if (strcmp(command, "add_user") == 0)
@@ -200,10 +288,6 @@ int main()
             scanf("%s", product.productId);
             printf("Enter product name: ");
             scanf("%s", product.name);
-            printf("Enter product category: ");
-            scanf("%s", product.category);
-            printf("Enter product inventory: ");
-            scanf("%d", &product.inventory);
             addProduct(&productTable, &product);
             printf("Product added successfully.\n");
         }
@@ -215,19 +299,19 @@ int main()
             insertTrie(root, product);
             printf("Browsing history recorded.\n");
         }
-        else if (strcmp(command, "purchase") == 0)
+        else if (strcmp(command, "recommend") == 0)
         {
-            Purchase purchase;
-            printf("Enter username: ");
-            scanf("%s", purchase.username);
-            printf("Enter product ID: ");
-            scanf("%s", purchase.productId);
-            addPurchase(&purchaseHistory, &purchase);
-            printf("Purchase recorded.\n");
-        }
-        else if (strcmp(command, "history") == 0)
-        {
-            printPurchaseHistory(&purchaseHistory);
+            char product[50];
+            printf("Enter product name to recommend: ");
+            scanf("%s", product);
+            if (searchTrie(root, product))
+            {
+                printf("Browsing history found for %s.\n", product);
+            }
+            else
+            {
+                printf("Browsing history not found for %s.\n", product);
+            }
         }
         else if (strcmp(command, "exit") == 0)
         {
@@ -240,4 +324,108 @@ int main()
     }
 
     return 0;
+}
+// Purchase History Tracker
+typedef struct PurchaseHistory
+{
+    char username[50];
+    char productId[50];
+    struct PurchaseHistory *next;
+} PurchaseHistory;
+
+PurchaseHistory *purchaseHistoryHead = NULL;
+
+// Add purchase history
+void addPurchaseHistory(char *username, char *productId)
+{
+    PurchaseHistory *newHistory = (PurchaseHistory *)malloc(sizeof(PurchaseHistory));
+    strcpy(newHistory->username, username);
+    strcpy(newHistory->productId, productId);
+    newHistory->next = purchaseHistoryHead;
+    purchaseHistoryHead = newHistory;
+}
+
+// Display purchase history for a user
+void displayPurchaseHistory(char *username)
+{
+    PurchaseHistory *current = purchaseHistoryHead;
+    printf("Purchase history for %s:\n", username);
+    while (current)
+    {
+        if (strcmp(current->username, username) == 0)
+        {
+            printf("Product ID: %s\n", current->productId);
+        }
+        current = current->next;
+    }
+}
+
+// Product Management: Manage product categories and inventory
+typedef struct ProductCategory
+{
+    char categoryId[50];
+    char categoryName[50];
+} ProductCategory;
+
+typedef struct ProductInventory
+{
+    char productId[50];
+    int quantity;
+} ProductInventory;
+
+ProductCategory productCategories[TABLE_SIZE];
+ProductInventory productInventory[TABLE_SIZE];
+
+// Add a product category
+void addProductCategory(char *categoryId, char *categoryName)
+{
+    for (int i = 0; i < TABLE_SIZE; i++)
+    {
+        if (strlen(productCategories[i].categoryId) == 0)
+        {
+            strcpy(productCategories[i].categoryId, categoryId);
+            strcpy(productCategories[i].categoryName, categoryName);
+            break;
+        }
+    }
+}
+
+// Add product inventory
+void addProductInventory(char *productId, int quantity)
+{
+    for (int i = 0; i < TABLE_SIZE; i++)
+    {
+        if (strlen(productInventory[i].productId) == 0)
+        {
+            strcpy(productInventory[i].productId, productId);
+            productInventory[i].quantity = quantity;
+            break;
+        }
+    }
+}
+
+// Update product inventory
+void updateProductInventory(char *productId, int quantity)
+{
+    for (int i = 0; i < TABLE_SIZE; i++)
+    {
+        if (strcmp(productInventory[i].productId, productId) == 0)
+        {
+            productInventory[i].quantity = quantity;
+            break;
+        }
+    }
+}
+
+// Display product inventory
+void displayProductInventory()
+{
+    printf("Product Inventory:\n");
+    for (int i = 0; i < TABLE_SIZE; i++)
+    {
+        if (strlen(productInventory[i].productId) > 0)
+        {
+            printf("Product ID: %s, Quantity: %d\n", productInventory[i].productId, productInventory[i].quantity);
+        }
+    }
 }
