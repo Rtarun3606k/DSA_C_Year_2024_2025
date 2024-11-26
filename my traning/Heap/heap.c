@@ -13,6 +13,7 @@ void init(NODE *h)
 {
     h->heapsize = 0;
     h->heap[0] = INT_MAX;
+    //     In a heap data structure, the first element (index 0) is often used as a sentinel value. By assigning `INT_MAX` to `h->heap[0]`, you are setting this sentinel value to the maximum possible integer value. This can help simplify the logic for heap operations, such as insertion and deletion, by providing a guaranteed value that is larger than any other value in the heap.
 }
 
 void swap(int *a, int *b)
