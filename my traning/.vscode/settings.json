@@ -29,6 +29,13 @@
         "unordered_map": "c",
         "utility": "c",
         "vector": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "bitset": "c",
+        "initializer_list": "c",
+        "span": "c",
+        "format": "c",
+        "__hash_table": "c",
+        "__split_buffer": "c",
+        "__tree": "c"
     }
 }
