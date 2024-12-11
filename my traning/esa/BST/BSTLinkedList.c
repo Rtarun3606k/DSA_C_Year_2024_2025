@@ -147,15 +147,43 @@ Node *deleteNode(Node *root, int data)
 {
     if (data < root->data)
     {
-        deleteNode(root->left, data);
+        root->left = deleteNode(root->left, data);
     }
     else if (data > root->data)
     {
-        deleteNode(root->right, data);
+        root->right = deleteNode(root->right, data);
+    }
+    else if (root == NULL)
+    {
+        return root;
     }
     else
     {
+        if (root->right == NULL && root->left == NULL)
+        {
+            free(root);
+            root = NULL;
+        }
+        else if (root->right == NULL)
+        {
+            Node *temp = root;
+            root = root->left;
+            free(temp);
+        }
+        else if (root->left == NULL)
+        {
+            Node *temp = root;
+            root = root->right;
+            free(temp);
+        }
+        else
+        {
+            Node *temp = createNode(minium(root->right));
+            root->data = temp->data;
+            root->right = deleteNode(root->right, temp->data);
+        }
     }
+    return root;
 }
 
 int main()
@@ -182,6 +210,10 @@ int main()
     preorder(root);
     printf("\n");
     printf("seached: %d\n", search(root, 6));
+    root = deleteNode(root, 6);
+    root = deleteNode(root, 0);
+    printf("Inorder: ");
+    inorder(root);
 
     return 0;
 }
